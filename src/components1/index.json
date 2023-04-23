@@ -1,0 +1,3 @@
+[
+  {"name":"sel","type":"select-one","required":false,"value":null,"readonly":false,"tableVisibility":false,"fieldCSS":null,"fieldClassCss":null,"fieldOrder":3,"fieldMask":null,"length":null,"minLength":null,"maxLength":null,"language":null,"tab":false,"space":false,"textColor":null,"textBackgroundColor":null,"textFontName":null,"textFontSize":null,"isJustChar":false,"isJustDigit":false,"minimum":null,"maximum":null,"submitUrl":null,"submitAction":null,"tokenSend":false,"trueTitle":null,"falseTitle":null,"radioOptions":null,"dependentDate":null,"headers":null,"selectOneServerUrl":null,"selectOneServerDependentName":null,"selectOptions":{"name":1, "family":2}}
+]

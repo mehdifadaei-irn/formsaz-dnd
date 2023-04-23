@@ -1,34 +1,192 @@
-import { useState } from "react"
-import reactLogo from "./assets/react.svg"
-import "./App.css"
-import Heading from "./components/Heading"
-import SectionH from "./components/SectionH"
-import Counter from "./components/Counter"
-import List from "./components/List"
-import Custome from "./components/Custome";
-import {Form} from 'my-firstt-pac'
+import React, { useCallback, useEffect, useRef, useState } from "react"
+import { createPortal, unstable_batchedUpdates } from "react-dom"
+import {
+  CancelDrop,
+  closestCenter,
+  pointerWithin,
+  rectIntersection,
+  CollisionDetection,
+  DndContext,
+  DragOverlay,
+  DropAnimation,
+  getFirstCollision,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  Modifiers,
+  useDroppable,
+  UniqueIdentifier,
+  useSensors,
+  useSensor,
+  MeasuringStrategy,
+  KeyboardCoordinateGetter,
+  defaultDropAnimationSideEffects,
+} from "@dnd-kit/core"
+import {
+  AnimateLayoutChanges,
+  SortableContext,
+  useSortable,
+  arrayMove,
+  defaultAnimateLayoutChanges,
+  verticalListSortingStrategy,
+  SortingStrategy,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { DroppableStory } from "./container/Droppable"
 
-const myJson: string =
-  '[{"name":"باتون","type":"submit","required":false,"value":null,"readonly":false,"tableVisibility":false,"fieldCSS":"height: 40px;width: 130px;border-radius: 5px;margin: 5px;","fieldClassCss":"","fieldOrder":2,"fieldMask":null,"length":null,"minLength":null,"maxLength":null,"language":null,"tab":false,"space":false,"textColor":null,"textBackgroundColor":null,"textFontName":null,"textFontSize":null,"isJustChar":false,"isJustDigit":false,"minimum":null,"maximum":null,"submitUrl":"http://172.16.20.155:8109/api/form-curd","submitAction":null,"tokenSend":false,"trueTitle":null,"falseTitle":null,"radioOptions":null,"dependentDate":null,"headers":"{\\"content-type\\":\\"application/json\\"}","selectOneServerUrl":null,"selectOneServerDependentName":null,"selectOptions":null},{"name":"ایمیل","type":"email","required":false,"value":null,"readonly":true,"tableVisibility":false,"fieldCSS":null,"fieldClassCss":null,"fieldOrder":2,"fieldMask":null,"length":null,"minLength":null,"maxLength":null,"language":null,"tab":false,"space":false,"textColor":null,"textBackgroundColor":null,"textFontName":null,"textFontSize":null,"isJustChar":false,"isJustDigit":false,"minimum":null,"maximum":null,"submitUrl":null,"submitAction":null,"tokenSend":false,"trueTitle":null,"falseTitle":null,"radioOptions":null,"dependentDate":null,"headers":null,"selectOneServerUrl":null,"selectOneServerDependentName":null,"selectOptions":null},{"name":"جنسیت","type":"checkbox","required":false,"value":null,"readonly":false,"tableVisibility":true,"fieldCSS":null,"fieldClassCss":null,"fieldOrder":4,"fieldMask":null,"length":null,"minLength":null,"maxLength":null,"language":null,"tab":false,"space":false,"textColor":null,"textBackgroundColor":null,"textFontName":null,"textFontSize":null,"isJustChar":false,"isJustDigit":false,"minimum":null,"maximum":null,"submitUrl":null,"submitAction":null,"tokenSend":false,"trueTitle":"مذکر","falseTitle":"مونث","radioOptions":null,"dependentDate":null,"headers":null,"selectOneServerUrl":null,"selectOneServerDependentName":null,"selectOptions":null},{"name":"متن","type":"text","required":true,"value":null,"readonly":true,"tableVisibility":true,"fieldCSS":null,"fieldClassCss":null,"fieldOrder":5,"fieldMask":null,"length":null,"minLength":1,"maxLength":10,"language":"en","tab":true,"space":true,"textColor":"#ef2525","textBackgroundColor":"#6ae2d4","textFontName":"","textFontSize":30,"isJustChar":true,"isJustDigit":true,"minimum":null,"maximum":null,"submitUrl":null,"submitAction":null,"tokenSend":false,"trueTitle":null,"falseTitle":null,"radioOptions":null,"dependentDate":null,"headers":null,"selectOneServerUrl":null,"selectOneServerDependentName":null,"selectOptions":null},{"formSubjectId":2,"formCurdId":null,"name":"تاریخ","type":"jalali","required":false,"value":null,"readonly":false,"tableVisibility":true,"fieldCSS":null,"fieldClassCss":null,"fieldOrder":8,"fieldMask":null,"length":null,"minLength":null,"maxLength":null,"language":null,"tab":false,"space":false,"textColor":null,"textBackgroundColor":null,"textFontName":null,"textFontSize":null,"isJustChar":false,"isJustDigit":false,"minimum":null,"maximum":null,"submitUrl":null,"submitAction":null,"tokenSend":false,"trueTitle":null,"falseTitle":null,"radioOptions":"{\\"name\\":1, \\"family\\":2}","dependentDate":null,"headers":null,"selectOneServerUrl":null,"selectOneServerDependentName":null,"selectOptions":null},{"name":"رادیو","type":"radio","required":false,"value":null,"readonly":false,"tableVisibility":false,"fieldCSS":null,"fieldClassCss":null,"fieldOrder":20,"fieldMask":null,"length":null,"minLength":null,"maxLength":null,"language":null,"tab":false,"space":false,"textColor":null,"textBackgroundColor":null,"textFontName":null,"textFontSize":null,"isJustChar":false,"isJustDigit":false,"minimum":null,"maximum":null,"submitUrl":null,"submitAction":null,"tokenSend":false,"trueTitle":null,"falseTitle":null,"radioOptions":"{\\"name\\":\\"John\\", \\"age\\":30, \\"car\\":null}\\n","dependentDate":null,"headers":null,"selectOneServerUrl":null,"selectOneServerDependentName":null,"selectOptions":null}]'
+import Drag from "./comps/Drag"
+import Drop from "./comps/Drop"
+import { SortStatic } from "./comps/SortStatic"
+import { coordinateGetter as multipleContainersCoordinateGetter } from "./container/multipleContainersKeyboardCoordinates"
+import { Item } from "./components"
+import MyItem from "./container/MyItem"
+import Samp1 from "./components1/Samp1"
+
+function SortableItem({
+  disabled,
+  id,
+  index,
+  handle,
+  renderItem,
+  style,
+  containerId,
+  getIndex,
+  wrapperStyle,
+}: any) {
+  const {
+    setNodeRef,
+    setActivatorNodeRef,
+    listeners,
+    isDragging,
+    isSorting,
+    over,
+    overIndex,
+    transform,
+    transition,
+  } = useSortable({
+    id,
+  })
+  const mounted = useMountStatus()
+  const mountedWhileDragging = isDragging && !mounted
+
+  return (
+    <Item
+      ref={disabled ? undefined : setNodeRef}
+      value={id}
+      dragging={isDragging}
+      sorting={isSorting}
+      handle={handle}
+      handleProps={handle ? { ref: setActivatorNodeRef } : undefined}
+      index={index}
+      wrapperStyle={wrapperStyle({ index })}
+      style={style({
+        index,
+        value: id,
+        isDragging,
+        isSorting,
+        overIndex: over ? getIndex(over.id) : overIndex,
+        containerId,
+      })}
+      color={getColor(id)}
+      transition={transition}
+      transform={transform}
+      fadeIn={mountedWhileDragging}
+      listeners={listeners}
+      renderItem={renderItem}
+    />
+  )
+}
 
 function App() {
-  const [count, setCount] = useState<number>(1)
+  const [staticItems, setStaticItems] = useState(["input", "text", "number"])
+  // const [items, setItems] = useState(["One", "Tow", "SEc"])
+  const [container, setContainer] = useState(["A", "B"])
+  const [Items, setItems] = useState({
+    A: ["input", "text", "number"],
+    B: ["One", "Tow", "SEc"],
+  })
+  
+  const sensors = useSensors(
+    useSensor(MouseSensor),
+    useSensor(TouchSensor),
+    useSensor(KeyboardSensor, {
+      // @ts-ignore
+      multipleContainersCoordinateGetter,
+    })
+  )
+
+  // const addToSort = () => {
+  //   const first = new Date()
+  //   console.log(first)
+  //   setItems((items) => [...items, `mamal${first}`])
+  // }
+
+  function findContainer(it: any) {
+    // "input", "text", "number"
+    if (it === "input" || it === "text" || it === "number") {
+      return "A"
+    } else return "B"
+  }
 
   return (
     <div>
-      {/* <Heading title="MyTitle" primaryColor="#ff2ff2" />
-      <SectionH>MMDNABUDI bebini!!!!</SectionH>
-      <Counter setCount={setCount}>count is {count}</Counter>
-      <List
-        items={["coffee", "mmd", "Nder"]}
-        render={(item: string) => (
-          <span className="t text-yellow-400">{item.toUpperCase()}</span>
-        )}
-      />
-      <Custome myJson={myJson}/> */}
-      <Form label="MyForm" json={myJson}/>
+      {/* <Samp1/> */}
+      <h1>gel</h1>
     </div>
   )
+
+  // function handleOver(e: any) {
+  //   console.log("-")
+  //   console.log(e)
+  //   console.log("-")
+  // }
+  // function handleDragEnd1(e: any) {
+  //   console.log(e.active.id)
+  //   setItems((item) => [...item, e.active.id])
+  // }
+
+  // function handleDragEnd(event: any) {
+  //   const { active, over } = event
+  //   console.log(`ac=${active.id} --- ov=${over.id}`)
+  //   console.log(over)
+  //   // setItems((items) => [...items, "drag"])
+  //   if (active.id !== over.id) {
+  //     setItems((items) => {
+  //       const oldIndex = items.indexOf(active.id)
+  //       const newIndex = items.indexOf(over.id)
+
+  //       return arrayMove(items, oldIndex, newIndex)
+  //     })
+  //   }
+  // }
+}
+
+function useMountStatus() {
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setIsMounted(true), 500)
+
+    return () => clearTimeout(timeout)
+  }, [])
+
+  return isMounted
+}
+
+function getColor(id: UniqueIdentifier) {
+  switch (String(id)[0]) {
+    case "A":
+      return "#7193f1"
+    case "B":
+      return "#ffda6c"
+    case "C":
+      return "#00bcd4"
+    case "D":
+      return "#ef769f"
+  }
+
+  return undefined
 }
 
 export default App
