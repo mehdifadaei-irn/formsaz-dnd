@@ -1,6 +1,9 @@
 import React from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import Password from "./inputs/Password"
+import Text from "./inputs/Text"
+import Number from "./inputs/Number"
 
 export function SortableItem(props: any) {
   const {
@@ -11,7 +14,13 @@ export function SortableItem(props: any) {
     transition,
     isOver,
     isDragging,
-  } = useSortable({ id: props.id })
+  } = useSortable({
+    id: props.uid,
+    data: {
+      isStatic: false,
+      uid: props.uid,
+    },
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -20,8 +29,15 @@ export function SortableItem(props: any) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <p className="bg-red-300 my-14">{props?.id}</p>
-      <p>{isDragging ? "over" : null}</p>
+      {props?.id === "Password" ? (
+        <Password isOver={isOver} />
+      ) : props?.id === "Text" ? (
+        <Text isOver={isOver} />
+      ) : props?.id == "Number" ? (
+        <Number isOver={isOver} />
+      ) : (
+        <p className="bg-red-300 my-14">{props?.id}</p>
+      )}
     </div>
   )
 }

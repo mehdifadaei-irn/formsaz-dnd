@@ -10,6 +10,8 @@ import {
   CollisionDetection as CollisionDetectionType,
   Modifiers,
 } from "@dnd-kit/core"
+import { v4 as uuidv4 } from "uuid"
+
 import {
   arrayMove,
   SortableContext,
@@ -39,17 +41,23 @@ interface Props {
 
 export default function DroppableStory({
   containers = ["A"],
-  collisionDetection,
+  collisionDetection = closestCenter,
   modifiers,
 }: Props) {
   const [isDragging, setIsDragging] = useState(false)
   const [parent, setParent] = useState<UniqueIdentifier | null>(null)
   const [staticItems, setStaticItems] = useState<string[]>([
-    "Input",
+    "Password",
     "Text",
     "Number",
   ])
+
   const [sortItems, setSortItems] = useState<any[]>([])
+
+  const [mainItems, setMainItems] = useState({
+    A: ["Password", "Text", "Number"],
+    B: [],
+  })
 
   function click() {
     console.log(sortItems)
@@ -57,14 +65,89 @@ export default function DroppableStory({
 
   return (
     <DndContext
-      collisionDetection={collisionDetection}
+      collisionDetection={closestCenter}
       modifiers={parent === null ? undefined : modifiers}
       onDragStart={() => setIsDragging(true)}
       onDragEnd={({ over, active }) => {
-        // console.log(over)
+        let newIndex = sortItems.length
+        sortItems.map((it, i) => {
+          if (it.id === over?.data.current?.uid) {
+            console.log("not")
+            newIndex = i
+          }
+        })
+
+        console.log(`newis = ${newIndex}`)
+        // console.log(lllg)
+        // console.log(active.data?.current?.isStatic)
         setParent(over ? over.id : null)
-        if (over === null) {
-          setSortItems([...sortItems, active.data.current?.content])
+        if (active.data?.current?.isStatic) {
+          // in  static items
+          // console.log(active)
+
+          console.log(over)
+          // setSortItems([...sortItems, active.data.current?.content])
+          if (true) {
+          if (sortItems.length === 0) {
+            setSortItems((item): any => {
+              let itemLenght = sortItems.length
+              if (itemLenght > 2) {
+                return [
+                  ...sortItems.slice(0, newIndex),
+                  { name: active.data.current?.content, id: uuidv4() },
+                  ...sortItems.slice(newIndex, sortItems.length),
+                ]
+              } else {
+                return [
+                  ...item,
+                  { name: active.data.current?.content, id: uuidv4() },
+                ]
+              }
+            })
+          } else if (over !== null) {
+            setSortItems((item): any => {
+              let itemLenght = sortItems.length
+              if (itemLenght > 2) {
+                return [
+                  ...sortItems.slice(0, newIndex),
+                  { name: active.data.current?.content, id: uuidv4() },
+                  ...sortItems.slice(newIndex, sortItems.length),
+                ]
+              } else {
+                return [
+                  ...item,
+                  { name: active.data.current?.content, id: uuidv4() },
+                ]
+              }
+            })
+          }
+          }
+        } else {
+          // in sort Items
+          if (active.id !== over?.id) {
+            setSortItems((items) => {
+              // const oldIndex = items.indexOf(active.id)
+              let oi
+              const oldIndex = items.map((it, i) => {
+                if (it.id === active.id) {
+                  oi = i
+                }
+              })
+
+              // const newIndex = items.indexOf(over?.id)
+              let ni
+              const newIndex = items.map((it, i) => {
+                if (it.id === over?.id) {
+                  ni = i
+                }
+              })
+
+              console.log({ ni, oi })
+
+              // @ts-ignore
+              return arrayMove(sortItems, oi, ni)
+            })
+          }
         }
         setIsDragging(false)
       }}
@@ -90,13 +173,14 @@ export default function DroppableStory({
         </Wrapper>
         <div className="bg-slate-400 w-[30%] h-68">
           {containers.map((idd, i) => (
-            <div key={i} className="bo  border">
+            <div key={i} className="bo  border bg-red-400">
               <SortableContext
                 items={sortItems}
                 strategy={verticalListSortingStrategy}
+                
               >
                 {sortItems.map((id, i) => (
-                  <SortableItem key={i} id={id} />
+                  <SortableItem key={i} id={id.name} uid={id.id} />
                 ))}
               </SortableContext>
             </div>
@@ -119,6 +203,7 @@ function DraggableItem({ handle, id, content }: DraggableProps) {
     id: id,
     data: {
       content,
+      isStatic: true,
     },
   })
 

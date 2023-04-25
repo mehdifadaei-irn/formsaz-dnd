@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import { createPortal, unstable_batchedUpdates } from "react-dom"
+import { v4 as uuidv4 } from "uuid"
 import {
   CancelDrop,
   closestCenter,
@@ -191,9 +192,14 @@ export function MultipleContainers({
    * - If there are no intersecting containers, return the last matched intersection
    *
    */
+  function myLog() {
+    console.log(createRange(itemCount, (index) => `A${index + 1}`))
+  }
+
   const collisionDetectionStrategy: CollisionDetection = useCallback(
     (args) => {
       if (activeId && activeId in items) {
+        console.log("collisionDetectionStrategy")
         return closestCenter({
           ...args,
           droppableContainers: args.droppableContainers.filter(
@@ -224,14 +230,14 @@ export function MultipleContainers({
           // If a container is matched and it contains items (columns 'A', 'B', 'C')
           if (containerItems.length > 0) {
             // Return the closest droppable within that container
-            overId = closestCenter({
-              ...args,
-              droppableContainers: args.droppableContainers.filter(
-                (container) =>
-                  container.id !== overId &&
-                  containerItems.includes(container.id)
-              ),
-            })[0]?.id
+            // overId = closestCenter({
+            //   ...args,
+            //   droppableContainers: args.droppableContainers.filter(
+            //     (container) =>
+            //       container.id !== overId &&
+            //       containerItems.includes(container.id)
+            //   ),
+            // })[0]?.id
           }
         }
 
@@ -313,6 +319,7 @@ export function MultipleContainers({
       }}
       onDragOver={({ active, over }) => {
         const overId = over?.id
+        // console.log(`${active} -- ${over} `)
 
         if (overId == null || overId === TRASH_ID || active.id in items) {
           return
@@ -326,50 +333,56 @@ export function MultipleContainers({
         }
 
         if (activeContainer !== overContainer) {
-          setItems((items) => {
-            const activeItems = items[activeContainer]
-            const overItems = items[overContainer]
-            const overIndex = overItems.indexOf(overId)
-            const activeIndex = activeItems.indexOf(active.id)
+          if (overContainer === "B") {
+            setItems((items) => {
+              const activeItems = items[activeContainer]
+              const overItems = items[overContainer]
+              const overIndex = overItems.indexOf(overId)
+              const activeIndex = activeItems.indexOf(active.id)
 
-            let newIndex: number
+              let newIndex: number
 
-            if (overId in items) {
-              newIndex = overItems.length + 1
-            } else {
-              const isBelowOverItem =
-                over &&
-                active.rect.current.translated &&
-                active.rect.current.translated.top >
-                  over.rect.top + over.rect.height
+              if (overId in items) {
+                newIndex = overItems.length + 1
+              } else {
+                const isBelowOverItem =
+                  over &&
+                  active.rect.current.translated &&
+                  active.rect.current.translated.top >
+                    over.rect.top + over.rect.height
 
-              const modifier = isBelowOverItem ? 1 : 0
+                const modifier = isBelowOverItem ? 1 : 0
 
-              newIndex =
-                overIndex >= 0 ? overIndex + modifier : overItems.length + 1
-            }
+                newIndex =
+                  overIndex >= 0 ? overIndex + modifier : overItems.length + 1
+              }
 
-            recentlyMovedToNewContainer.current = true
+              recentlyMovedToNewContainer.current = true
 
-            return {
-              ...items,
-              [activeContainer]: items[activeContainer].filter(
-                (item) => item !== active.id
-              ),
-              [overContainer]: [
-                ...items[overContainer].slice(0, newIndex),
-                items[activeContainer][activeIndex],
-                ...items[overContainer].slice(
-                  newIndex,
-                  items[overContainer].length
-                ),
-              ],
-            }
-          })
+              return {
+                ...items,
+                [activeContainer]: items[activeContainer].filter((item) => {
+                  if (activeContainer == "B") {
+                    return item !== active.id
+                  } else return true
+                }),
+                [overContainer]: [
+                  ...items[overContainer].slice(0, newIndex),
+                  items[activeContainer][activeIndex],
+                  ...items[overContainer].slice(
+                    newIndex,
+                    items[overContainer].length
+                  ),
+                ],
+              }
+            })
+          }
         }
       }}
       onDragEnd={({ active, over }) => {
         if (active.id in items && over?.id) {
+          console.log("3")
+
           setContainers((containers) => {
             const activeIndex = containers.indexOf(active.id)
             const overIndex = containers.indexOf(over.id)
@@ -392,20 +405,9 @@ export function MultipleContainers({
           return
         }
 
-        if (overId === TRASH_ID) {
-          setItems((items) => ({
-            ...items,
-            [activeContainer]: items[activeContainer].filter(
-              (id) => id !== activeId
-            ),
-          }))
-          setActiveId(null)
-          return
-        }
-
         if (overId === PLACEHOLDER_ID) {
           const newContainerId = getNextContainerId()
-
+          console.log("1")
           unstable_batchedUpdates(() => {
             setContainers((containers) => [...containers, newContainerId])
             setItems((items) => ({
@@ -422,7 +424,7 @@ export function MultipleContainers({
 
         const overContainer = findContainer(overId)
 
-        if (overContainer) {
+        if (overContainer == "B") {
           const activeIndex = items[activeContainer].indexOf(active.id)
           const overIndex = items[overContainer].indexOf(overId)
 
@@ -452,6 +454,7 @@ export function MultipleContainers({
           gridAutoFlow: vertical ? "row" : "column",
         }}
       >
+        <button onClick={myLog}>cli</button>
         <SortableContext
           items={[...containers, PLACEHOLDER_ID]}
           strategy={
@@ -683,12 +686,14 @@ function SortableItem({
   const mounted = useMountStatus()
   const mountedWhileDragging = isDragging && !mounted
 
+  // console.log(id)
+
   return (
     <Item
       ref={disabled ? undefined : setNodeRef}
       value={id}
-      dragging={isDragging}
-      sorting={isSorting}
+      dragging={false}
+      sorting={false}
       handle={handle}
       handleProps={handle ? { ref: setActivatorNodeRef } : undefined}
       index={index}
